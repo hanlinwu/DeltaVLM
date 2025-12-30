@@ -28,16 +28,15 @@
 
 **DeltaVLM** is a Vision-Language Model designed for **Interactive Remote Sensing Image Change Analysis (RSICA)**. Given a pair of bi-temporal remote sensing images (before and after), DeltaVLM can:
 
-- 📝 **Change Captioning**: Generate natural language descriptions of changes
-- 💬 **Interactive QA**: Answer questions about specific changes  
-- 🎯 **Change Localization**: Predict binary change masks (with Mask Branch)
+-  **Change Captioning**: Generate natural language descriptions of changes
+-  **Interactive QA**: Answer questions about specific changes  
+-  **Change Localization**: Predict binary change masks (with Mask Branch)
 
 ### Key Features
 
-- 🔥 Built on **BLIP-2** architecture with **EVA-ViT-G** visual encoder and **Vicuna-7B** LLM
-- 🔄 **CSRM (Change-aware Spatial Representation Module)** for difference-aware feature extraction
-- 📊 **AnyUp-style Mask Branch** for high-resolution change mask prediction
-- 🎓 Trained on **ChangeChat** - a large-scale multi-turn change dialogue dataset
+-  Built on **BLIP-2** architecture with **EVA-ViT-G** visual encoder and **Vicuna-7B** LLM
+-  **CSRM (Change-aware Spatial Representation Module)** for difference-aware feature extraction
+-  Trained on **ChangeChat-105k** - a large-scale multi-turn change dialogue dataset
 
 ---
 
@@ -110,7 +109,7 @@ pretrained/
 
 ## 📦 Data Preparation
 
-### ChangeChat Dataset
+### ChangeChat-105k Dataset
 
 ChangeChat is a large-scale multi-turn change dialogue dataset containing:
 - 🖼️ **11,099** bi-temporal image pairs
@@ -296,8 +295,6 @@ This project builds upon the following excellent works:
 - [BLIP-2](https://github.com/salesforce/LAVIS) - Vision-Language Pre-training
 - [EVA](https://github.com/baaivision/EVA) - Vision Transformer
 - [Vicuna](https://github.com/lm-sys/FastChat) - Large Language Model
-- [AnyUp](https://github.com/wimmerth/anyup) - Universal Upsampling
-- [Change-Agent](https://github.com/Chen-Yang-Liu/Change-Agent) - Change Detection
 
 ---
 
