@@ -56,7 +56,6 @@ DeltaVLM consists of three main components:
 
 - **Stage 1**: Q-Former pre-training with image-text alignment
 - **Stage 2**: Instruction tuning with multi-turn dialogue
-- **Stage 3** (Optional): Mask branch training for change localization
 
 ---
 
