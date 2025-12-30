@@ -1,0 +1,76 @@
+# Evaluation Configuration for DeltaVLM
+#
+# Usage: python scripts/evaluate.py --cfg_path configs/evaluate.yaml
+#
+# Evaluates change captioning on standard metrics (BLEU, CIDEr, METEOR, ROUGE)
+
+# ===== Model Configuration =====
+model:
+  arch: "instruct_vicuna7b"
+  model_type: "vicuna7b"
+  
+  # Checkpoint to evaluate
+  pretrained: "./output/stage2/checkpoint_best.pth"
+  
+  # Vision encoder
+  vit_model: "eva_clip_g"
+  image_size: 224
+  vit_precision: "fp16"
+  freeze_vit: true
+  
+  # Q-Former
+  num_query_token: 32
+  qformer_text_input: true
+  
+  # LLM
+  llm_model: "lmsys/vicuna-7b-v1.5"
+  
+  # Text
+  max_txt_len: 128
+  max_output_txt_len: 256
+
+# ===== Dataset Configuration =====
+datasets:
+  changechat:
+    type: default
+    
+    vis_processor:
+      eval:
+        name: blip_image_eval
+        image_size: 224
+        
+    text_processor:
+      eval:
+        name: blip_caption
+        
+    build_info:
+      annotations:
+        test:
+          storage: "data/changechat/annotations/test.json"
+      images:
+        storage: "data/changechat/images"
+
+# ===== Evaluation Configuration =====
+run:
+  task: image_text_pretrain
+  
+  # Evaluation settings
+  evaluate: true
+  test_splits: ["test"]
+  
+  batch_size_eval: 8
+  num_workers: 4
+  
+  # Generation settings
+  max_len: 256
+  min_len: 10
+  num_beams: 5
+  
+  # Device
+  device: cuda
+  distributed: false
+  
+  # Output
+  output_dir: "output/eval"
+
+

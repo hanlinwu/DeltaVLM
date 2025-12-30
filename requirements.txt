@@ -1,0 +1,65 @@
+# DeltaVLM Dependencies
+# Install with: pip install -r requirements.txt
+
+# ============ Core Dependencies ============
+torch>=1.10.0
+torchvision>=0.11.0
+torchaudio
+
+# ============ Transformers & NLP ============
+transformers==4.33.2
+sentencepiece
+tokenizers
+
+# ============ Vision ============
+timm==0.4.12
+opencv-python-headless>=4.5.0
+Pillow>=9.0.0
+scikit-image
+
+# ============ Configuration ============
+omegaconf
+easydict>=1.9
+
+# ============ Data Processing ============
+pandas
+numpy
+h5py
+webdataset
+
+# ============ Evaluation ============
+pycocoevalcap
+pycocotools
+nltk
+
+# ============ Logging & Visualization ============
+tensorboard
+tqdm
+plotly
+
+# ============ Distributed Training ============
+fairscale==0.4.4
+accelerate
+
+# ============ Utilities ============
+einops>=0.4.1
+ftfy
+iopath
+packaging
+
+# ============ PEFT (Parameter-Efficient Fine-Tuning) ============
+peft
+
+# ============ Optional: Video Processing ============
+# decord
+# moviepy
+# soundfile
+
+# ============ Optional: 3D Visualization ============
+# open3d
+
+# ============ Development ============
+# pre-commit
+# ipython
+
+
