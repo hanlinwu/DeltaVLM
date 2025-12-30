@@ -1,32 +1,51 @@
 # Data Preparation Guide
 
-This document provides detailed instructions for preparing datasets for DeltaVLM.
+This document provides detailed instructions for preparing datasets for DeltaVLM training and evaluation.
 
 ## Table of Contents
 
-- [ChangeChat Dataset](#changechat-dataset)
+- [ChangeChat-105k Dataset](#changechat-105k-dataset)
+- [LEVIR-CC Dataset](#levir-cc-dataset)
 - [LEVIR-MCI Dataset](#levir-mci-dataset)
 - [Custom Dataset](#custom-dataset)
 - [Annotation Format](#annotation-format)
 
 ---
 
-## ChangeChat Dataset
+## ChangeChat-105k Dataset
 
 ### Overview
 
-ChangeChat is a large-scale multi-turn change dialogue dataset containing:
-- **11,099** bi-temporal image pairs
-- **77,693** question-answer pairs
-- Multi-turn conversation format for interactive change analysis
+**ChangeChat-105k** is a large-scale instruction-following dataset specifically designed for Remote Sensing Image Change Analysis (RSICA). It was constructed through a hybrid pipeline combining rule-based methods and GPT-assisted generation from the LEVIR-CC and LEVIR-MCI source datasets.
+
+### Key Statistics
+
+- **Total Instruction-Response Pairs**: 105,107
+- **Training Set**: 87,935 pairs
+- **Test Set**: 17,172 pairs
+- **Image Resolution**: 256 × 256 pixels at 0.5 m/pixel spatial resolution
+
+### Instruction Types
+
+The dataset covers six categories of instruction types:
+
+| Type | Description | Generation Method |
+|------|-------------|-------------------|
+| **Change Captioning** | Generate natural language descriptions of observed changes | Rule-based conversion from LEVIR-CC captions |
+| **Binary Change Classification** | Determine if changes occurred (yes/no response) | Rule-based from change maps |
+| **Category-Specific Change Quantification** | Count specific object changes (buildings, roads) | Rule-based with OpenCV contour detection |
+| **Change Localization** | Identify change locations in 3×3 grid format | Rule-based from change map spatial analysis |
+| **Open-ended QA** | Answer diverse questions about changes | GPT-assisted with in-context learning |
+| **Multi-turn Conversation** | Chain-of-thought style progressive analysis | Rule-based dialogue construction |
 
 ### Download
 
 ```bash
-# Automatic download (if available)
+# Automatic download
 python data/download_changechat.py --output_dir ./data/changechat
 
-# Or download manually and extract to ./data/changechat/
+# Verify integrity
+python data/verify_dataset.py --dataset changechat --data_root ./data/changechat
 ```
 
 ### Directory Structure
@@ -35,8 +54,8 @@ python data/download_changechat.py --output_dir ./data/changechat
 data/changechat/
 ├── images/
 │   ├── train/
-│   │   ├── pair_00001_A.png
-│   │   ├── pair_00001_B.png
+│   │   ├── pair_00001_A.png    # Before image (T1)
+│   │   ├── pair_00001_B.png    # After image (T2)
 │   │   └── ...
 │   ├── val/
 │   └── test/
@@ -48,18 +67,85 @@ data/changechat/
 
 ### Annotation Format
 
+Each annotation file contains a list of samples with the following structure:
+
 ```json
 {
   "id": "unique_sample_id",
   "image": ["path/to/before.png", "path/to/after.png"],
   "conversations": [
-    {"from": "human", "value": "<image>Describe the changes..."},
-    {"from": "gpt", "value": "A new building has been constructed..."},
-    {"from": "human", "value": "How many buildings changed?"},
-    {"from": "gpt", "value": "Two buildings have changed..."}
+    {"from": "human", "value": "<image>Please briefly describe the changes in these two images."},
+    {"from": "gpt", "value": "A new building has been constructed in the center of the image, and a road has been extended in the bottom-left area."}
   ]
 }
 ```
+
+#### Field Descriptions
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique identifier for the sample |
+| `image` | list[str] | Paths to bi-temporal images [T1, T2] |
+| `conversations` | list[dict] | Alternating human/gpt conversation turns |
+| `conversations[i].from` | string | Speaker identifier ("human" or "gpt") |
+| `conversations[i].value` | string | Message content; first human message includes `<image>` placeholder |
+
+#### Multi-turn Dialogue Example
+
+```json
+{
+  "id": "multiturn_00042",
+  "image": ["train/pair_00042_A.png", "train/pair_00042_B.png"],
+  "conversations": [
+    {"from": "human", "value": "<image>Please judge whether these two images have changed or not. Answer yes or no."},
+    {"from": "gpt", "value": "Yes."},
+    {"from": "human", "value": "What types of objects have changed?"},
+    {"from": "gpt", "value": "Buildings and roads have changed in the images."},
+    {"from": "human", "value": "How many buildings have been added?"},
+    {"from": "gpt", "value": "Three new buildings have been constructed."},
+    {"from": "human", "value": "Please describe the changes in detail."},
+    {"from": "gpt", "value": "Three new buildings have appeared in the top-right region. Additionally, a road has been extended from the center toward the bottom-left corner of the image."}
+  ]
+}
+```
+
+#### Change Localization Format
+
+For localization tasks, changes are reported using a 3×3 grid notation:
+
+| Code | Position |
+|------|----------|
+| TL | Top-Left |
+| TC | Top-Center |
+| TR | Top-Right |
+| CL | Center-Left |
+| CC | Center-Center |
+| CR | Center-Right |
+| BL | Bottom-Left |
+| BC | Bottom-Center |
+| BR | Bottom-Right |
+
+Example response: `"Changes are located in TL, TC, and CC regions."`
+
+---
+
+## LEVIR-CC Dataset
+
+### Overview
+
+LEVIR-CC (LEVIR Change Captioning) is the primary source dataset for change captioning annotations. It provides bi-temporal image pairs with five human-written captions each.
+
+### Statistics
+
+- **Image Pairs**: 10,077
+- **Captions per Pair**: 5
+- **Total Captions**: 50,385
+- **Image Size**: 256 × 256 pixels
+
+### Download
+
+LEVIR-CC can be obtained from the official repository:
+- Repository: https://github.com/Chen-Yang-Liu/RSICC
 
 ---
 
@@ -67,15 +153,16 @@ data/changechat/
 
 ### Overview
 
-LEVIR-MCI (LEVIR Multi-class Change Instance) provides:
-- High-resolution bi-temporal image pairs
-- Pixel-level change masks
-- Multi-class annotations (roads, buildings)
+LEVIR-MCI (LEVIR Multi-class Change Instance) extends LEVIR-CC with pixel-level change masks, supporting binary change detection and fine-grained change analysis.
+
+### Statistics
+
+- **Image Pairs**: 10,077 (same as LEVIR-CC)
+- **Mask Classes**: 3 (background, road, building)
 
 ### Download
 
 ```bash
-# Download from official source
 python data/download_levir_mci.py --output_dir ./data/levir_mci
 
 # Or download from: https://github.com/Chen-Yang-Liu/LEVIR-MCI
@@ -97,30 +184,22 @@ data/levir_mci/
     │       ├── 00001.png
     │       └── ...
     ├── val/
-    │   ├── A/
-    │   ├── B/
-    │   └── label/
     └── test/
-        ├── A/
-        ├── B/
-        └── label/
 ```
 
 ### Mask Format
 
-| Value | Class |
-|-------|-------|
+| Pixel Value | Class |
+|-------------|-------|
 | 0 | No change (background) |
 | 128 | Road change |
 | 255 | Building change |
-
-**Note**: For binary segmentation, any non-zero value is treated as "change".
 
 ---
 
 ## Custom Dataset
 
-### For Change Captioning
+### For Change Captioning Tasks
 
 1. **Organize images**:
 ```
@@ -149,7 +228,7 @@ your_dataset/
 ]
 ```
 
-3. **Update config** with your paths:
+3. **Update configuration**:
 ```yaml
 datasets:
   your_dataset:
@@ -161,69 +240,13 @@ datasets:
         storage: "path/to/images"
 ```
 
-### For Mask Prediction
+### Requirements
 
-1. **Organize images**:
-```
-your_mask_dataset/
-└── images/
-    ├── train/
-    │   ├── A/      # Before images
-    │   ├── B/      # After images
-    │   └── label/  # Binary masks
-    ├── val/
-    └── test/
-```
-
-2. **Requirements**:
-- Matching filenames across A/, B/, label/ directories
-- Masks: PNG format, 0 = no change, 255 = change
-- Recommended resolution: 256×256
-
-3. **Usage**:
-```bash
-python scripts/train_mask.py \
-    --data_root ./your_mask_dataset/images \
-    --pretrained ./checkpoint.pth
-```
-
----
-
-## Annotation Format
-
-### Multi-turn Dialogue Format
-
-The dialogue format supports multi-turn conversations:
-
-```json
-{
-  "id": "sample_id",
-  "image": ["before.png", "after.png"],
-  "conversations": [
-    {"from": "human", "value": "<image>Question 1?"},
-    {"from": "gpt", "value": "Answer 1."},
-    {"from": "human", "value": "Follow-up question?"},
-    {"from": "gpt", "value": "Follow-up answer."}
-  ]
-}
-```
-
-**Key points**:
-- First human message should contain `<image>` placeholder
-- Alternating human/gpt turns
-- Any number of turns supported
-
-### Evaluation Format
-
-For evaluation, use a simplified format:
-
-```json
-{
-  "image_A": "path/to/before.png",
-  "image_B": "path/to/after.png",
-  "captions": ["Ground truth caption 1", "Ground truth caption 2"]
-}
-```
+- Images should be PNG or JPEG format
+- Recommended resolution: 256×256 pixels
+- Matching filenames for bi-temporal pairs
+- First human message must contain `<image>` placeholder
+- Alternating human/gpt conversation turns
 
 ---
 
@@ -232,25 +255,23 @@ For evaluation, use a simplified format:
 ### Common Issues
 
 1. **File not found errors**
-   - Verify paths in annotation files are relative to `vis_root`
-   - Check file extensions match
+   - Verify paths in annotation files are relative to the images directory
+   - Check file extensions match exactly
 
 2. **Image loading errors**
    - Ensure images are valid PNG/JPEG files
-   - Check file permissions
+   - Verify file permissions
 
-3. **Mask dimension mismatch**
-   - Verify mask dimensions match config (`mask_size`)
-   - Check mask is grayscale or convertible
+3. **Annotation parsing errors**
+   - Validate JSON syntax
+   - Ensure all required fields are present
 
 ### Verification Script
 
 ```bash
-# Verify ChangeChat dataset
+# Verify ChangeChat-105k dataset
 python data/verify_dataset.py --dataset changechat --data_root ./data/changechat
 
-# Verify LEVIR-MCI dataset
+# Verify LEVIR-MCI dataset  
 python data/verify_dataset.py --dataset levir_mci --data_root ./data/levir_mci
 ```
-
-

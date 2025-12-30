@@ -6,7 +6,7 @@ This directory should contain the pretrained model weights for DeltaVLM.
 
 ### 1. Vicuna-7B-v1.5
 
-Large Language Model backbone.
+Large Language Model backbone (frozen during training).
 
 ```bash
 # Download using HuggingFace CLI
@@ -14,8 +14,7 @@ huggingface-cli login
 huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir ./pretrained/vicuna-7b-v1.5
 ```
 
-Or manually:
-- URL: https://huggingface.co/lmsys/vicuna-7b-v1.5
+Or manually download from: https://huggingface.co/lmsys/vicuna-7b-v1.5
 
 ### 2. BERT-base-uncased
 
@@ -41,30 +40,26 @@ After training, place checkpoints here:
 | File | Description |
 |------|-------------|
 | `deltavlm_stage1.pth` | Stage 1 pre-trained weights |
-| `deltavlm_stage2.pth` | Stage 2 fine-tuned weights |
-| `mask_branch_best.pth` | Mask branch weights |
+| `deltavlm_stage2.pth` | Stage 2 instruction-tuned weights |
 
 ## Directory Structure
 
 ```
 pretrained/
 ├── README.md              # This file
-├── vicuna-7b-v1.5/        # Vicuna LLM
+├── vicuna-7b-v1.5/        # Vicuna LLM (frozen)
 │   ├── config.json
 │   ├── tokenizer.model
 │   └── *.bin
-├── bert-base-uncased/     # BERT tokenizer
+├── bert-base-uncased/     # BERT for Q-former
 │   ├── config.json
 │   └── *.bin
 ├── eva_vit_g.pth          # EVA-ViT vision encoder
-├── deltavlm_stage2.pth    # Trained DeltaVLM weights
-└── mask_branch_best.pth   # Mask branch weights
+└── deltavlm_stage2.pth    # Trained DeltaVLM weights
 ```
 
 ## Notes
 
 - Total disk space required: ~30GB
 - Vicuna-7B requires agreement to Meta's LLaMA license
-- EVA-ViT-G is ~1GB
-
-
+- EVA-ViT-G is approximately 1GB

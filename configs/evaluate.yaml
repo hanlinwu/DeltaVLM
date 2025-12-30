@@ -2,7 +2,9 @@
 #
 # Usage: python scripts/evaluate.py --cfg_path configs/evaluate.yaml
 #
-# Evaluates change captioning on standard metrics (BLEU, CIDEr, METEOR, ROUGE)
+# Evaluates DeltaVLM on the ChangeChat-105k test set.
+# Supports multiple RSICA tasks: captioning, classification, quantification, localization.
+# Metrics: BLEU-1/2/3/4, CIDEr, METEOR, ROUGE-L, Accuracy, F1, MAE, RMSE
 
 # ===== Model Configuration =====
 model:

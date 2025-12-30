@@ -15,11 +15,13 @@ This document provides detailed installation instructions for DeltaVLM.
 ## Requirements
 
 ### Hardware
+
 - **GPU**: NVIDIA GPU with at least 24GB VRAM (A100 recommended)
 - **RAM**: 32GB+ system memory
 - **Storage**: 50GB+ for models and datasets
 
 ### Software
+
 - Python >= 3.8
 - PyTorch >= 1.10.0
 - CUDA >= 11.3
@@ -43,8 +45,8 @@ pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorc
 # Install dependencies
 pip install -r requirements.txt
 
-# Download pretrained models
-python scripts/download_pretrained.py
+# Install package
+pip install -e .
 ```
 
 ---
@@ -77,7 +79,7 @@ pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorc
 # CUDA 12.1
 pip install torch==2.1.0 torchvision==0.16.0 --index-url https://download.pytorch.org/whl/cu121
 
-# CPU only (not recommended)
+# CPU only (not recommended for training)
 pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cpu
 ```
 
@@ -92,7 +94,7 @@ python -c "import torch; print(f'PyTorch: {torch.__version__}, CUDA: {torch.cuda
 pip install -r requirements.txt
 ```
 
-### 5. Install DeltaVLM Package (Optional)
+### 5. Install DeltaVLM Package
 
 For development:
 ```bash
@@ -108,8 +110,8 @@ pip install -e .
 | Model | Size | Description | Download |
 |-------|------|-------------|----------|
 | EVA-ViT-G | 1.0B | Vision encoder | [HuggingFace](https://huggingface.co/BAAI/EVA) |
-| Vicuna-7B-v1.5 | 7B | Language model | [HuggingFace](https://huggingface.co/lmsys/vicuna-7b-v1.5) |
-| BERT-base-uncased | 110M | Tokenizer | [HuggingFace](https://huggingface.co/bert-base-uncased) |
+| Vicuna-7B-v1.5 | 7B | Language model (frozen) | [HuggingFace](https://huggingface.co/lmsys/vicuna-7b-v1.5) |
+| BERT-base-uncased | 110M | Q-former initialization | [HuggingFace](https://huggingface.co/bert-base-uncased) |
 
 ### Download Models
 
@@ -147,8 +149,7 @@ pretrained/
 | Checkpoint | Description | Download |
 |------------|-------------|----------|
 | Stage 1 | Q-Former pre-training | [Link](#) |
-| Stage 2 | Instruction tuning | [Link](#) |
-| Mask Branch | Mask prediction | [Link](#) |
+| Stage 2 | Instruction tuning on ChangeChat-105k | [Link](#) |
 
 ---
 
@@ -213,7 +214,7 @@ Run a quick test:
 python -c "from deltavlm.models import Blip2VicunaInstruct; print('Import OK')"
 
 # Test dataset loading
-python -c "from deltavlm.datasets import ChangeMaskDataset; print('Dataset OK')"
+python -c "from deltavlm.datasets import ChangeCaptionDataset; print('Dataset OK')"
 ```
 
 ---
@@ -221,7 +222,5 @@ python -c "from deltavlm.datasets import ChangeMaskDataset; print('Dataset OK')"
 ## Next Steps
 
 1. [Prepare datasets](DATA.md)
-2. [Start training](../README.md#-training)
-3. [Run inference](../README.md#-inference)
-
-
+2. [Start training](../README.md#training)
+3. [Run inference](../README.md#inference)

@@ -2,7 +2,11 @@
 #
 # Usage: python scripts/train.py --cfg_path configs/train_stage2.yaml
 #
-# This config performs instruction tuning on the ChangeChat dataset.
+# This config performs instruction tuning on the ChangeChat-105k dataset.
+# ChangeChat-105k contains 105,107 instruction-response pairs covering:
+# - Change captioning, Binary change classification
+# - Category-specific change quantification, Change localization
+# - Open-ended QA, Multi-turn conversation
 
 # ===== Model Configuration =====
 model:

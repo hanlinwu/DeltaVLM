@@ -1,11 +1,24 @@
 """
-DeltaVLM: BLIP-2 with Vicuna for Remote Sensing Change Analysis
+DeltaVLM: Interactive Remote Sensing Image Change Analysis via Instruction-guided Difference Perception
 
-This module implements the core DeltaVLM model that combines:
-- EVA-ViT-G visual encoder for bi-temporal image encoding
-- Change-aware Spatial Representation Module (CSRM) for difference modeling
-- Q-Former for vision-language alignment
-- Vicuna-7B LLM for natural language generation
+This module implements the core DeltaVLM model for Remote Sensing Image Change Analysis (RSICA).
+
+Architecture:
+    1. Bi-temporal Vision Encoder (Bi-VE): EVA-ViT-g/14 with selective fine-tuning
+       (first 37 layers frozen, last 2 blocks trainable)
+    
+    2. Instruction-guided Difference Perception Module (IDPM):
+       - Cross-Semantic Relation Measuring (CSRM) mechanism with three steps:
+         a) Contextualizing: Fuses difference features with temporal features
+         b) Gating: Computes relevance scores via sigmoid activation
+         c) Filtering: Selectively retains semantically relevant changes
+       - Instruction-guided Q-Former for cross-modal alignment
+    
+    3. Language Decoder: Frozen Vicuna-7B for natural language generation
+
+Reference:
+    DeltaVLM: Interactive Remote Sensing Image Change Analysis via
+    Instruction-guided Difference Perception (TGRS 2024)
 
 Copyright (c) 2024
 SPDX-License-Identifier: BSD-3-Clause
@@ -26,16 +39,32 @@ from .base_model import all_gather_with_grad, concat_all_gather
 
 class Blip2VicunaInstruct(Blip2Base):
     """
-    DeltaVLM model based on BLIP-2 with Vicuna LLM.
+    DeltaVLM: Vision-Language Model for Interactive Remote Sensing Image Change Analysis.
     
-    This model processes bi-temporal remote sensing images and generates
-    natural language descriptions of changes or answers questions about them.
+    This model enables instruction-guided, multi-turn dialogue for analyzing changes
+    in bi-temporal remote sensing images. It supports multiple RSICA tasks including:
+    - Change captioning
+    - Binary change classification
+    - Category-specific change quantification
+    - Change localization
+    - Open-ended question answering
+    - Multi-turn conversation
     
     Architecture:
-        1. EVA-ViT-G encodes both images independently
-        2. CSRM (Change-aware Spatial Representation Module) models temporal differences
-        3. Q-Former aligns visual features with text
-        4. Vicuna-7B generates natural language output
+        1. Bi-temporal Vision Encoder (Bi-VE): EVA-ViT-g/14 encodes each image
+           independently. First 37 layers are frozen; last 2 blocks are fine-tuned.
+        
+        2. Cross-Semantic Relation Measuring (CSRM): Models temporal differences
+           through contextualizing, gating, and filtering mechanisms to suppress
+           irrelevant variations (sensor noise, lighting) while preserving
+           meaningful changes.
+        
+        3. Instruction-guided Q-Former: Aligns filtered visual difference features
+           with user instructions through cross-attention, producing 32 query
+           embeddings that capture instruction-relevant change information.
+        
+        4. Frozen Vicuna-7B: Generates natural language responses conditioned on
+           the aligned difference features and user instructions.
     
     Args:
         vit_model: Vision encoder type ("eva_clip_g")
@@ -43,13 +72,13 @@ class Blip2VicunaInstruct(Blip2Base):
         drop_path_rate: Drop path rate for ViT
         use_grad_checkpoint: Enable gradient checkpointing
         vit_precision: ViT precision ("fp16" or "fp32")
-        freeze_vit: Whether to freeze the vision encoder
-        num_query_token: Number of Q-Former query tokens
-        llm_model: Path to LLM model
+        freeze_vit: Whether to freeze vision encoder (except last 2 blocks)
+        num_query_token: Number of Q-Former query tokens (default: 32)
+        llm_model: Path to Vicuna-7B model
         prompt: Default prompt template
         max_txt_len: Maximum input text length
         max_output_txt_len: Maximum output text length
-        apply_lemmatizer: Whether to apply lemmatization
+        apply_lemmatizer: Whether to apply lemmatization for evaluation
         qformer_text_input: Whether Q-Former receives text input
     """
 
@@ -120,46 +149,37 @@ class Blip2VicunaInstruct(Blip2Base):
                 layer.intermediate = None
         self.Qformer.cls = None
 
-        # Skip LLM loading for mask-only training mode
-        self.skip_llm = getattr(self, '_skip_llm', False)
+        # Initialize LLM (Vicuna-7B, frozen during training)
+        self.llm_tokenizer = LlamaTokenizer.from_pretrained(
+            llm_model or "lmsys/vicuna-7b-v1.5",
+            use_fast=False,
+            truncation_side="left"
+        )
+        self.llm_model = LlamaForCausalLM.from_pretrained(
+            llm_model or "lmsys/vicuna-7b-v1.5",
+            torch_dtype=torch.float16
+        )
         
-        if not self.skip_llm:
-            # Initialize LLM
-            self.llm_tokenizer = LlamaTokenizer.from_pretrained(
-                llm_model or "lmsys/vicuna-7b-v1.5",
-                use_fast=False,
-                truncation_side="left"
-            )
-            self.llm_model = LlamaForCausalLM.from_pretrained(
-                llm_model or "lmsys/vicuna-7b-v1.5",
-                torch_dtype=torch.float16
-            )
-            
-            # Add special tokens
-            self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
-            self.llm_tokenizer.add_special_tokens({'bos_token': '</s>'})
-            self.llm_tokenizer.add_special_tokens({'eos_token': '</s>'})
-            self.llm_tokenizer.add_special_tokens({'unk_token': '</s>'})
-            self.llm_model.resize_token_embeddings(len(self.llm_tokenizer))
+        # Add special tokens
+        self.llm_tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        self.llm_tokenizer.add_special_tokens({'bos_token': '</s>'})
+        self.llm_tokenizer.add_special_tokens({'eos_token': '</s>'})
+        self.llm_tokenizer.add_special_tokens({'unk_token': '</s>'})
+        self.llm_model.resize_token_embeddings(len(self.llm_tokenizer))
 
-            # Freeze LLM
-            for param in self.llm_model.parameters():
-                param.requires_grad = False
+        # Freeze LLM - only vision and alignment modules are trained
+        for param in self.llm_model.parameters():
+            param.requires_grad = False
+        logging.info("Frozen LLM (Vicuna-7B)")
 
-            # LLM projection
-            self.llm_proj = nn.Linear(
-                self.Qformer.config.hidden_size,
-                self.llm_model.config.hidden_size
-            )
-            
-            prompt_tokens = self.llm_tokenizer(prompt, return_tensors="pt")
-            self.prompt_length = prompt_tokens.attention_mask.sum(1)
-        else:
-            self.llm_tokenizer = None
-            self.llm_model = None
-            self.llm_proj = None
-            self.prompt_length = 0
-            logging.info("Skipping LLM loading for mask-only training")
+        # Projection layer: Q-Former output -> LLM input space
+        self.llm_proj = nn.Linear(
+            self.Qformer.config.hidden_size,
+            self.llm_model.config.hidden_size
+        )
+        
+        prompt_tokens = self.llm_tokenizer(prompt, return_tensors="pt")
+        self.prompt_length = prompt_tokens.attention_mask.sum(1)
 
         # Configuration
         self.max_txt_len = max_txt_len
@@ -168,21 +188,25 @@ class Blip2VicunaInstruct(Blip2Base):
         self.qformer_text_input = qformer_text_input
         self._lemmatizer = None
 
-        # ============ Change-aware Spatial Representation Module (CSRM) ============
-        # These layers model the temporal difference between bi-temporal images
+        # ============ Cross-Semantic Relation Measuring (CSRM) Module ============
+        # CSRM filters irrelevant variations and retains semantically meaningful changes
+        # through three steps: Contextualizing, Gating, and Filtering
         feat_dim = self.visual_encoder.num_features  # 1408 for EVA-ViT-G
         
-        # Context modeling
-        self.context1 = nn.Linear(feat_dim, feat_dim, bias=False)
-        self.context2 = nn.Linear(feat_dim, feat_dim)
+        # Contextualizing: Fuse difference features with temporal features
+        # C_t = tanh(W_c[F_diff; F_t] + b_c)
+        self.context1 = nn.Linear(feat_dim, feat_dim, bias=False)  # W_c for F_diff
+        self.context2 = nn.Linear(feat_dim, feat_dim)              # W_c for F_t + bias
         
-        # Gating mechanism
-        self.gate1 = nn.Linear(feat_dim, feat_dim, bias=False)
-        self.gate2 = nn.Linear(feat_dim, feat_dim)
+        # Gating: Compute relevance scores via sigmoid
+        # G_t = sigmoid(W_g[F_diff; F_t] + b_g)
+        self.gate1 = nn.Linear(feat_dim, feat_dim, bias=False)     # W_g for F_diff
+        self.gate2 = nn.Linear(feat_dim, feat_dim)                 # W_g for F_t + bias
         
         self.dropout = nn.Dropout(0.5)
         
-        # Feature fusion
+        # Filtering: F'_t = G_t * C_t (element-wise multiplication)
+        # Feature fusion: Concatenate [F_t, F_diff, F'_t] and project
         self.context3 = nn.Linear(3 * feat_dim, feat_dim)
         
         # Contrastive learning projections (optional)
@@ -406,36 +430,44 @@ class Blip2VicunaInstruct(Blip2Base):
             Qformer_atts = torch.cat([query_atts, text_Qformer.attention_mask], dim=1)
 
         with self.maybe_autocast():
-            # Extract features
-            input_bef = self.ln_vision(self.visual_encoder(image_A))
-            input_aft = self.ln_vision(self.visual_encoder(image_B))
+            # Step 1: Bi-temporal Vision Encoding
+            # Extract features from both images independently
+            input_bef = self.ln_vision(self.visual_encoder(image_A))  # F_t1
+            input_aft = self.ln_vision(self.visual_encoder(image_B))  # F_t2
 
-            # Apply CSRM for difference modeling
-            input_diff = input_aft - input_bef
+            # Step 2: CSRM - Cross-Semantic Relation Measuring
+            # Compute raw difference
+            input_diff = input_aft - input_bef  # F_diff = F_t2 - F_t1
 
-            # Context and gating for before image
+            # CSRM for T1 features:
+            # Contextualizing: C_t1 = tanh(W_c[F_diff; F_t1] + b_c)
             input_bef_context = torch.tanh(
                 self.context1(input_diff) + self.context2(input_bef)
             )
             input_bef_context = self.dropout(input_bef_context)
+            # Gating: G_t1 = sigmoid(W_g[F_diff; F_t1] + b_g)
             input_bef_gate = torch.sigmoid(
                 self.gate1(input_diff) + self.gate2(input_bef)
             )
             input_bef_gate = self.dropout(input_bef_gate)
+            # Filtering: F'_t1 = G_t1 * C_t1
             input_befs = input_bef_gate * input_bef_context
 
-            # Context and gating for after image
+            # CSRM for T2 features:
+            # Contextualizing: C_t2 = tanh(W_c[F_diff; F_t2] + b_c)
             input_aft_context = torch.tanh(
                 self.context1(input_diff) + self.context2(input_aft)
             )
             input_aft_context = self.dropout(input_aft_context)
+            # Gating: G_t2 = sigmoid(W_g[F_diff; F_t2] + b_g)
             input_aft_gate = torch.sigmoid(
                 self.gate1(input_diff) + self.gate2(input_aft)
             )
             input_aft_gate = self.dropout(input_aft_gate)
+            # Filtering: F'_t2 = G_t2 * C_t2
             input_afts = input_aft_gate * input_aft_context
 
-            # Fuse features
+            # Feature fusion: Concatenate [F_t, F_diff, F'_t] for each temporal state
             input_bef = input_bef.permute(0, 2, 1)
             input_aft = input_aft.permute(0, 2, 1)
             input_befs = input_befs.permute(0, 2, 1)
@@ -448,6 +480,7 @@ class Blip2VicunaInstruct(Blip2Base):
             input_before = input_before.permute(0, 2, 1)
             input_after = input_after.permute(0, 2, 1)
             
+            # Project fused features back to original dimension
             image_embeds_A = self.context3(input_before)
             image_embeds_B = self.context3(input_after)
             

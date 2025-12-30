@@ -4,21 +4,35 @@ This directory contains data preparation scripts and documentation for DeltaVLM 
 
 ## Datasets Overview
 
-### 1. ChangeChat Dataset
+### ChangeChat-105k Dataset
 
-**ChangeChat** is a large-scale multi-turn change dialogue dataset for remote sensing image change analysis.
+**ChangeChat-105k** is a large-scale instruction-following dataset for Remote Sensing Image Change Analysis (RSICA). It was constructed through a hybrid pipeline combining rule-based methods and GPT-assisted generation.
 
-| Split | Image Pairs | Q-A Pairs |
-|-------|-------------|-----------|
-| Train | 8,879 | 62,153 |
-| Val | 1,110 | 7,770 |
-| Test | 1,110 | 7,770 |
-| **Total** | **11,099** | **77,693** |
+#### Key Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Instruction-Response Pairs | 105,107 |
+| Training Set | 87,935 |
+| Test Set | 17,172 |
+| Image Resolution | 256 × 256 pixels |
+| Spatial Resolution | 0.5 m/pixel |
+
+#### Instruction Types
+
+| Type | Training | Test | Generation Method |
+|------|----------|------|-------------------|
+| Change Captioning | 34,075 | 1,929 | Rule-based |
+| Binary Change Classification | 6,815 | 1,929 | Rule-based |
+| Category-specific Change Quantification | 6,815 | 1,929 | Rule-based |
+| Change Localization | 6,815 | 1,929 | Rule-based |
+| Open-ended QA | 26,600 | 7,527 | GPT-assisted |
+| Multi-turn Conversation | 6,815 | 1,929 | Rule-based |
 
 #### Download
 
 ```bash
-# Download ChangeChat dataset
+# Download ChangeChat-105k dataset
 python data/download_changechat.py --output_dir ./data/changechat
 ```
 
@@ -28,8 +42,8 @@ python data/download_changechat.py --output_dir ./data/changechat
 data/changechat/
 ├── images/
 │   ├── train/
-│   │   ├── pair_00001_A.png   # Before image
-│   │   ├── pair_00001_B.png   # After image
+│   │   ├── pair_00001_A.png   # Before image (T1)
+│   │   ├── pair_00001_B.png   # After image (T2)
 │   │   └── ...
 │   ├── val/
 │   └── test/
@@ -66,9 +80,9 @@ Each annotation file is a JSON list with the following structure:
 
 ---
 
-### 2. LEVIR-MCI Dataset
+### LEVIR-MCI Dataset
 
-**LEVIR-MCI** (LEVIR Multi-class Change Instance) is used for training the mask prediction branch.
+**LEVIR-MCI** (LEVIR Multi-class Change Instance) provides pixel-level change masks and serves as the source for generating quantification and localization annotations in ChangeChat-105k.
 
 #### Download
 
@@ -98,13 +112,12 @@ data/levir_mci/
 
 #### Mask Format
 
-- **Format**: PNG images (grayscale or RGB)
+- **Format**: PNG images (grayscale)
 - **Resolution**: 256×256 pixels
 - **Classes**:
   - `0`: No change (background)
   - `128`: Road change
   - `255`: Building change
-- **Binary conversion**: Any non-zero value → change
 
 ---
 
@@ -119,8 +132,9 @@ data/levir_mci/
 
 ### Option 2: Manual Download
 
-1. **ChangeChat**: Contact the authors or download from official source
+1. **ChangeChat-105k**: Contact the authors or download from official source
 2. **LEVIR-MCI**: Download from [official repository](https://github.com/Chen-Yang-Liu/LEVIR-MCI)
+3. **LEVIR-CC**: Download from [official repository](https://github.com/Chen-Yang-Liu/RSICC)
 
 ### Verify Dataset
 
@@ -135,19 +149,11 @@ python data/verify_dataset.py --dataset levir_mci --data_root ./data/levir_mci
 
 ## Custom Dataset
 
-To use your own dataset, follow these formats:
-
-### For Change Captioning
+To use your own dataset for change captioning:
 
 1. Organize images in `images/{split}/` directories
 2. Create annotation JSON files with the format shown above
 3. Update the config file paths
-
-### For Mask Training
-
-1. Create `A/`, `B/`, `label/` directories for each split
-2. Ensure matching filenames across directories
-3. Masks should be binary or multi-class PNG images
 
 ---
 
@@ -156,17 +162,17 @@ To use your own dataset, follow these formats:
 If you use these datasets, please cite:
 
 ```bibtex
-@article{changechat2024,
-  title={ChangeChat: A Large-Scale Multi-Turn Change Dialogue Dataset},
-  author={},
+@article{deltavlm2024,
+  title={DeltaVLM: Interactive Remote Sensing Image Change Analysis via Instruction-guided Difference Perception},
+  author={Deng, Pei and Zhou, Wenqian and Wu, Hanlin},
+  journal={IEEE Transactions on Geoscience and Remote Sensing},
   year={2024}
 }
 
-@article{levir_mci2023,
-  title={LEVIR-MCI: A Multi-class Change Instance Dataset},
-  author={},
-  year={2023}
+@article{liu2022remote,
+  title={Remote sensing image change captioning with dual-branch transformers},
+  author={Liu, Chenyang and others},
+  journal={IEEE Transactions on Geoscience and Remote Sensing},
+  year={2022}
 }
 ```
-
-
