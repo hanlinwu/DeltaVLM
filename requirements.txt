@@ -50,16 +50,4 @@ packaging
 # ============ PEFT (Parameter-Efficient Fine-Tuning) ============
 peft
 
-# ============ Optional: Video Processing ============
-# decord
-# moviepy
-# soundfile
-
-# ============ Optional: 3D Visualization ============
-# open3d
-
-# ============ Development ============
-# pre-commit
-# ipython
-
 
