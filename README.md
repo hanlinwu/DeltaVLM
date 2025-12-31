@@ -20,13 +20,22 @@ DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** as a new pa
 - **Open-ended QA**: Answer diverse user queries about observed changes
 - **Multi-turn Dialogue**: Support interactive conversations for complex change analysis
 
-### Architecture
+## Architecture
+
+<p align="center">
+  <img src="docs/assets/architecture.png" width="800">
+</p>
 
 1. **Bi-temporal Vision Encoder (Bi-VE)**: Fine-tuned EVA-ViT-g/14 that captures temporal differences through selective fine-tuning (last 2 blocks trainable, first 37 frozen)
 2. **Instruction-guided Difference Perception Module (IDPM)**: Features Cross-Semantic Relation Measuring (CSRM) mechanism to filter irrelevant variations and retain semantically meaningful changes
 3. **Instruction-guided Q-former**: Aligns visual difference features with user instructions
 4. **Frozen LLM Backbone**: Vicuna-7B as language decoder (frozen during training)
 
+## Multi-turn Dialogue Example
+
+<p align="center">
+  <img src="docs/assets/multi-dialogue.png" width="800">
+</p>
 ---
 
 ## Installation
