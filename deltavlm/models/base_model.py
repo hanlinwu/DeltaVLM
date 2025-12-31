@@ -1,15 +1,4 @@
-"""
-Base Model Classes for DeltaVLM
-
-Provides base classes for models including:
-- BaseModel: Base class for all models
-- BaseEncoder: Base class for encoders (ViT, etc.)
-- SharedQueueMixin: Mixin for shared memory queue
-- MomentumDistilationMixin: Mixin for momentum distillation
-
-Copyright (c) 2024
-SPDX-License-Identifier: BSD-3-Clause
-"""
+"""Base model classes."""
 
 import logging
 import os
@@ -21,14 +10,12 @@ import torch.distributed as dist
 
 
 def is_url(url_or_filename):
-    """Check if input is a URL."""
     from urllib.parse import urlparse
     parsed = urlparse(url_or_filename)
     return parsed.scheme in ("http", "https")
 
 
 def is_dist_avail_and_initialized():
-    """Check if distributed training is available and initialized."""
     if not dist.is_available():
         return False
     if not dist.is_initialized():
@@ -37,12 +24,11 @@ def is_dist_avail_and_initialized():
 
 
 def get_abs_path(path):
-    """Get absolute path relative to this file."""
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
 
 class BaseModel(nn.Module):
-    """Base class for models."""
+    """Base class for all models."""
 
     def __init__(self):
         super().__init__()
@@ -52,11 +38,7 @@ class BaseModel(nn.Module):
         return list(self.parameters())[0].device
 
     def load_checkpoint(self, url_or_filename):
-        """
-        Load from a finetuned checkpoint.
-
-        This should expect no mismatch in the model keys and the checkpoint keys.
-        """
+        """Load from a checkpoint file or URL."""
         if is_url(url_or_filename):
             from timm.models.hub import download_cached_file
             cached_file = download_cached_file(
@@ -74,27 +56,15 @@ class BaseModel(nn.Module):
             state_dict = checkpoint
 
         msg = self.load_state_dict(state_dict, strict=False)
-
         logging.info("Missing keys {}".format(msg.missing_keys))
         logging.info("load checkpoint from %s" % url_or_filename)
-
         return msg
 
     @classmethod
     def from_pretrained(cls, model_type):
-        """
-        Build a pretrained model from default configuration file, specified by model_type.
-
-        Args:
-            model_type (str): model type, specifying architecture and checkpoints.
-
-        Returns:
-            model (nn.Module): pretrained or finetuned model.
-        """
         from omegaconf import OmegaConf
         model_cfg = OmegaConf.load(cls.default_config_path(model_type)).model
         model = cls.from_config(model_cfg)
-
         return model
 
     @classmethod
@@ -105,34 +75,26 @@ class BaseModel(nn.Module):
         return get_abs_path(cls.PRETRAINED_MODEL_CONFIG_DICT[model_type])
 
     def load_checkpoint_from_config(self, cfg, **kwargs):
-        """
-        Load checkpoint as specified in the config file.
-
-        If load_finetuned is True, load the finetuned model; otherwise, load the pretrained model.
-        """
         load_finetuned = cfg.get("load_finetuned", True)
         if load_finetuned:
             finetune_path = cfg.get("finetuned", None)
-            assert (
-                finetune_path is not None
-            ), "Found load_finetuned is True, but finetune_path is None."
+            assert finetune_path is not None
             self.load_checkpoint(url_or_filename=finetune_path)
         else:
             load_pretrained = cfg.get("load_pretrained", True)
             if load_pretrained:
                 pretrain_path = cfg.get("pretrained", None)
-                assert pretrain_path is not None, "Found load_finetuned is False, but pretrain_path is None."
+                assert pretrain_path is not None
                 self.load_from_pretrained(url_or_filename=pretrain_path, **kwargs)
 
     def before_training(self, **kwargs):
         pass
 
     def get_optimizer_params(self, weight_decay, lr_scale=1):
-        """Get optimizer parameters with weight decay."""
         p_wd, p_non_wd = [], []
         for n, p in self.named_parameters():
             if not p.requires_grad:
-                continue  # frozen weights
+                continue
             if p.ndim < 2 or "bias" in n or "ln" in n or "bn" in n:
                 p_non_wd.append(p)
             else:
@@ -147,7 +109,6 @@ class BaseModel(nn.Module):
         pass
 
     def show_n_params(self, return_str=True):
-        """Show number of parameters."""
         tot = 0
         for p in self.parameters():
             w = 1
@@ -164,9 +125,7 @@ class BaseModel(nn.Module):
 
 
 class BaseEncoder(nn.Module):
-    """
-    Base class for primitive encoders, such as ViT, TimeSformer, etc.
-    """
+    """Base class for encoders (ViT, etc.)."""
 
     def __init__(self):
         super().__init__()
@@ -180,20 +139,17 @@ class BaseEncoder(nn.Module):
 
 
 class SharedQueueMixin:
-    """Mixin for shared memory queue used in contrastive learning."""
+    """Mixin for shared memory queue in contrastive learning."""
     
     @torch.no_grad()
     def _dequeue_and_enqueue(self, image_feat, text_feat, idxs=None):
-        # gather keys before updating queue
         image_feats = concat_all_gather(image_feat)
         text_feats = concat_all_gather(text_feat)
 
         batch_size = image_feats.shape[0]
-
         ptr = int(self.queue_ptr)
-        assert self.queue_size % batch_size == 0  # for simplicity
+        assert self.queue_size % batch_size == 0
 
-        # replace the keys at ptr (dequeue and enqueue)
         self.image_queue[:, ptr : ptr + batch_size] = image_feats.T
         self.text_queue[:, ptr : ptr + batch_size] = text_feats.T
 
@@ -201,7 +157,7 @@ class SharedQueueMixin:
             idxs = concat_all_gather(idxs)
             self.idx_queue[:, ptr : ptr + batch_size] = idxs.T
 
-        ptr = (ptr + batch_size) % self.queue_size  # move pointer
+        ptr = (ptr + batch_size) % self.queue_size
         self.queue_ptr[0] = ptr
 
 
@@ -214,8 +170,8 @@ class MomentumDistilationMixin:
             for param, param_m in zip(
                 model_pair[0].parameters(), model_pair[1].parameters()
             ):
-                param_m.data.copy_(param.data)  # initialize
-                param_m.requires_grad = False  # not update by gradient
+                param_m.data.copy_(param.data)
+                param_m.requires_grad = False
 
     @torch.no_grad()
     def _momentum_update(self):
@@ -223,22 +179,15 @@ class MomentumDistilationMixin:
             for param, param_m in zip(
                 model_pair[0].parameters(), model_pair[1].parameters()
             ):
-                param_m.data = param_m.data * self.momentum + param.data * (
-                    1.0 - self.momentum
-                )
+                param_m.data = param_m.data * self.momentum + param.data * (1.0 - self.momentum)
 
 
 class GatherLayer(torch.autograd.Function):
-    """
-    Gather tensors from all workers with support for backward propagation:
-    This implementation does not cut the gradients as torch.distributed.all_gather does.
-    """
+    """Gather tensors from all workers with gradient support."""
 
     @staticmethod
     def forward(ctx, x):
-        output = [
-            torch.zeros_like(x) for _ in range(torch.distributed.get_world_size())
-        ]
+        output = [torch.zeros_like(x) for _ in range(torch.distributed.get_world_size())]
         torch.distributed.all_gather(output, x)
         return tuple(output)
 
@@ -250,38 +199,26 @@ class GatherLayer(torch.autograd.Function):
 
 
 def all_gather_with_grad(tensors):
-    """
-    Performs all_gather operation on the provided tensors.
-    Graph remains connected for backward grad computation.
-    """
+    """All_gather with gradient support."""
     world_size = 1
     if is_dist_avail_and_initialized():
         world_size = torch.distributed.get_world_size()
     
-    # There is no need for reduction in the single-proc case
     if world_size == 1:
         return tensors
 
     tensor_all = GatherLayer.apply(tensors)
-
     return torch.cat(tensor_all, dim=0)
 
 
 @torch.no_grad()
 def concat_all_gather(tensor):
-    """
-    Performs all_gather operation on the provided tensors.
-    *** Warning ***: torch.distributed.all_gather has no gradient.
-    """
-    # if use distributed training
+    """All_gather without gradient."""
     if not is_dist_avail_and_initialized():
         return tensor
 
-    tensors_gather = [
-        torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())
-    ]
+    tensors_gather = [torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())]
     torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
-
     output = torch.cat(tensors_gather, dim=0)
     return output
 

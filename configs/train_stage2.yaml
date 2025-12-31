@@ -1,22 +1,13 @@
 # Training Configuration for DeltaVLM Stage 2 (Instruction Tuning)
-#
 # Usage: python scripts/train.py --cfg_path configs/train_stage2.yaml
-#
-# This config performs instruction tuning on the ChangeChat-105k dataset.
-# ChangeChat-105k contains 105,107 instruction-response pairs covering:
-# - Change captioning, Binary change classification
-# - Category-specific change quantification, Change localization
-# - Open-ended QA, Multi-turn conversation
 
-# ===== Model Configuration =====
 model:
   arch: "instruct_vicuna7b"
   model_type: "vicuna7b"
   
-  # Pretrained weights from Stage 1
-  pretrained: "./pretrained/deltavlm_stage1.pth"
+  # NOTE: Set this to your Stage 1 checkpoint path, or remove if training from scratch
+  # pretrained: "./pretrained/deltavlm_stage1.pth"
   
-  # Vision encoder
   vit_model: "eva_clip_g"
   image_size: 224
   drop_path_rate: 0
@@ -24,20 +15,16 @@ model:
   vit_precision: "fp16"
   freeze_vit: true
   
-  # Q-Former
   num_query_token: 32
   qformer_text_input: true
   
-  # LLM
   llm_model: "lmsys/vicuna-7b-v1.5"
   
-  # Text
   prompt: ""
   max_txt_len: 128
   max_output_txt_len: 256
   apply_lemmatizer: false
 
-# ===== Dataset Configuration =====
 datasets:
   changechat:
     type: default
@@ -61,7 +48,9 @@ datasets:
         name: blip_caption
         prompt: ""
         max_words: 50
-        
+    
+    # NOTE: Update these paths to your local dataset location
+    # See docs/DATA.md for dataset download and structure
     build_info:
       annotations:
         train:
@@ -73,11 +62,9 @@ datasets:
       images:
         storage: "data/changechat/images"
 
-# ===== Training Configuration =====
 run:
   task: image_text_pretrain
   
-  # Learning rate
   lr_sched: linear_warmup_cosine_lr
   init_lr: 1e-5
   min_lr: 1e-6
@@ -85,34 +72,25 @@ run:
   warmup_steps: 500
   weight_decay: 0.05
   
-  # Training
   max_epoch: 30
   batch_size_train: 24
   batch_size_eval: 16
   num_workers: 4
   accum_grad_iters: 1
   
-  # Validation
   val_freq: 1
-  stop_criteria: 5  # Early stopping patience
+  stop_criteria: 5
   
-  # Checkpointing
   save_freq: 5
   save_last: true
   output_dir: "output/stage2"
   
-  # Evaluation
   evaluate: false
   train_splits: ["train"]
   valid_splits: ["val"]
   test_splits: ["test"]
   
-  # Device
   device: cuda
   seed: 42
   distributed: false
-  
-  # Misc
   amp: true
-
-

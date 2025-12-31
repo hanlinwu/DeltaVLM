@@ -1,65 +1,23 @@
 # Pretrained Models
 
-This directory should contain the pretrained model weights for DeltaVLM.
+## Required (User Downloads)
 
-## Required Models
+| Model | Description | Download |
+|-------|-------------|----------|
+| Vicuna-7B-v1.5 | LLM backbone (frozen) | `huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir ./pretrained/vicuna-7b-v1.5` |
+| BERT-base-uncased | Q-Former init | `huggingface-cli download bert-base-uncased --local-dir ./pretrained/bert-base-uncased` |
+| EVA-ViT-G | Vision encoder | Auto-downloaded during training, or: `wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/EVA/eva_vit_g.pth` |
 
-### 1. Vicuna-7B-v1.5
+## DeltaVLM Checkpoints (Not Included)
 
-Large Language Model backbone (frozen during training).
+Trained weights should be placed here after training:
+- `deltavlm_stage2.pth` - Instruction-tuned model
 
-```bash
-# Download using HuggingFace CLI
-huggingface-cli login
-huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir ./pretrained/vicuna-7b-v1.5
-```
-
-Or manually download from: https://huggingface.co/lmsys/vicuna-7b-v1.5
-
-### 2. BERT-base-uncased
-
-Used for Q-Former initialization.
-
-```bash
-huggingface-cli download bert-base-uncased --local-dir ./pretrained/bert-base-uncased
-```
-
-### 3. EVA-ViT-G
-
-Vision encoder. Will be downloaded automatically during training, or:
-
-```bash
-# Manual download
-wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/EVA/eva_vit_g.pth -P ./pretrained/
-```
-
-## DeltaVLM Checkpoints
-
-After training, place checkpoints here:
-
-| File | Description |
-|------|-------------|
-| `deltavlm_stage1.pth` | Stage 1 pre-trained weights |
-| `deltavlm_stage2.pth` | Stage 2 instruction-tuned weights |
-
-## Directory Structure
+## Expected Structure
 
 ```
 pretrained/
-├── README.md              # This file
-├── vicuna-7b-v1.5/        # Vicuna LLM (frozen)
-│   ├── config.json
-│   ├── tokenizer.model
-│   └── *.bin
-├── bert-base-uncased/     # BERT for Q-former
-│   ├── config.json
-│   └── *.bin
-├── eva_vit_g.pth          # EVA-ViT vision encoder
-└── deltavlm_stage2.pth    # Trained DeltaVLM weights
+├── vicuna-7b-v1.5/
+├── bert-base-uncased/
+└── eva_vit_g.pth
 ```
-
-## Notes
-
-- Total disk space required: ~30GB
-- Vicuna-7B requires agreement to Meta's LLaMA license
-- EVA-ViT-G is approximately 1GB
