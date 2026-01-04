@@ -5,47 +5,27 @@
 [![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/abs/2507.22346)
 [![License](https://img.shields.io/badge/License-BSD--3--Clause-green)](LICENSE)
 
----
-
-## Introduction
-
-DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** as a new paradigm that combines change detection and visual question answering to enable multi-turn, instruction-guided exploration of changes in bi-temporal remote sensing images.
-
-### Capabilities
-
-- **Change Captioning**: Generate natural language descriptions of changes
-- **Binary Change Classification**: Determine whether changes occurred
-- **Category-Specific Change Quantification**: Count specific object changes (buildings, roads)
-- **Change Localization**: Identify spatial locations of changes in a 3×3 grid format
-- **Open-ended QA**: Answer diverse user queries about observed changes
-- **Multi-turn Dialogue**: Support interactive conversations for complex change analysis
-
-## Architecture
-
 <p align="center">
   <img src="docs/assets/architecture.png" width="800">
 </p>
 
-1. **Bi-temporal Vision Encoder (Bi-VE)**: Fine-tuned EVA-ViT-g/14 that captures temporal differences through selective fine-tuning (last 2 blocks trainable, first 37 frozen)
-2. **Instruction-guided Difference Perception Module (IDPM)**: Features Cross-Semantic Relation Measuring (CSRM) mechanism to filter irrelevant variations and retain semantically meaningful changes
-3. **Instruction-guided Q-former**: Aligns visual difference features with user instructions
-4. **Frozen LLM Backbone**: Vicuna-7B as language decoder (frozen during training)
+## Introduction
 
-## Multi-turn Dialogue Example
+DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** — a paradigm combining change detection and visual question answering for multi-turn, instruction-guided exploration of bi-temporal remote sensing images.
 
-<p align="center">
-  <img src="docs/assets/multi-dialogue.png" width="800">
-</p>
+**Capabilities**: Change captioning, binary classification, quantification, localization, open-ended QA, multi-turn dialogue.
 
-## Installation
+**Architecture**:
+1. **Bi-temporal Vision Encoder**: Fine-tuned EVA-ViT-g/14 (last 2 blocks trainable)
+2. **IDPM with CSRM**: Filters irrelevant variations, retains meaningful changes
+3. **Instruction-guided Q-former**: Aligns visual differences with user instructions
+4. **Frozen Vicuna-7B**: Language decoder
 
-### Requirements
+---
 
-- Python >= 3.8
-- PyTorch >= 1.10.0
-- CUDA >= 11.3
+## Quick Start
 
-### Setup
+### 1. Environment Setup
 
 ```bash
 git clone https://github.com/hanlinwu/DeltaVLM.git
@@ -59,58 +39,79 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### Pre-trained Models
-
-Download and place in `pretrained/`:
-
-| Model | Description | Link |
-|-------|-------------|------|
-| EVA-ViT-G | Vision encoder | [HuggingFace](https://huggingface.co/BAAI/EVA) |
-| Vicuna-7B-v1.5 | Language model (frozen) | [HuggingFace](https://huggingface.co/lmsys/vicuna-7b-v1.5) |
-| BERT-base-uncased | Q-former initialization | [HuggingFace](https://huggingface.co/bert-base-uncased) |
-
----
-
-## Data Preparation
-
-### ChangeChat-105k Dataset
-
-A large-scale instruction-following dataset with **105,107 instruction-response pairs** derived from LEVIR-CC and LEVIR-MCI.
-
-| Instruction Type | Training Set | Test Set |
-|-----------------|--------------|----------|
-| Change Captioning | 34,075 | 1,929 |
-| Binary Change Classification | 6,815 | 1,929 |
-| Category-specific Change Quantification | 6,815 | 1,929 |
-| Change Localization | 6,815 | 1,929 |
-| Open-ended QA | 26,600 | 7,527 |
-| Multi-turn Conversation | 6,815 | 1,929 |
-| **Total** | **87,935** | **17,172** |
-
-See [docs/DATA.md](docs/DATA.md) for download instructions and annotation format.
-
----
-
-## Usage
-
-### Training
+### 2. Download Pretrained Models
 
 ```bash
-# Stage 2: Instruction tuning on ChangeChat-105k
+mkdir -p pretrained
+
+# Vicuna-7B (requires HuggingFace login)
+huggingface-cli login
+huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir pretrained/vicuna-7b-v1.5
+
+# BERT (for Q-former)
+huggingface-cli download bert-base-uncased --local-dir pretrained/bert-base-uncased
+
+# EVA-ViT-G (auto-downloads during training, or manually)
+wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/EVA/eva_vit_g.pth -P pretrained/
+```
+
+### 3. Prepare Dataset
+
+Download ChangeChat-105k (105,107 instruction-response pairs):
+
+```bash
+python data/download_changechat.py --output_dir ./data/changechat
+```
+
+Expected structure:
+```
+data/changechat/
+├── images/{train,val,test}/
+└── annotations/{train,val,test}.json
+```
+
+See [docs/DATA.md](docs/DATA.md) for annotation format.
+
+### 4. Training
+
+```bash
+# Single GPU
 python scripts/train.py --cfg_path configs/train_stage2.yaml
 
 # Multi-GPU
 torchrun --nproc_per_node=4 scripts/train.py --cfg_path configs/train_stage2.yaml
 ```
 
-### Inference
+### 5. Inference
 
 ```bash
 python scripts/predict.py \
     --image_A path/to/before.png \
     --image_B path/to/after.png \
-    --prompt "Please briefly describe the changes in these two images."
+    --prompt "Describe the changes in these two images."
 ```
+
+---
+
+## Multi-turn Dialogue Example
+
+<p align="center">
+  <img src="docs/assets/multi-dialogue.png" width="800">
+</p>
+
+---
+
+## ChangeChat-105k Dataset
+
+| Instruction Type | Train | Test |
+|-----------------|-------|------|
+| Change Captioning | 34,075 | 1,929 |
+| Binary Classification | 6,815 | 1,929 |
+| Change Quantification | 6,815 | 1,929 |
+| Change Localization | 6,815 | 1,929 |
+| Open-ended QA | 26,600 | 7,527 |
+| Multi-turn Dialogue | 6,815 | 1,929 |
+| **Total** | **87,935** | **17,172** |
 
 ---
 
@@ -125,15 +126,9 @@ python scripts/predict.py \
 }
 ```
 
----
-
 ## Acknowledgement
 
-- [BLIP-2](https://github.com/salesforce/LAVIS)
-- [EVA](https://github.com/baaivision/EVA)
-- [Vicuna](https://github.com/lm-sys/FastChat)
-- [LEVIR-CC](https://github.com/Chen-Yang-Liu/RSICC)
-- [LEVIR-MCI](https://github.com/Chen-Yang-Liu/LEVIR-MCI)
+[BLIP-2](https://github.com/salesforce/LAVIS) | [EVA](https://github.com/baaivision/EVA) | [Vicuna](https://github.com/lm-sys/FastChat) | [LEVIR-CC](https://github.com/Chen-Yang-Liu/RSICC) | [LEVIR-MCI](https://github.com/Chen-Yang-Liu/LEVIR-MCI)
 
 ## License
 
