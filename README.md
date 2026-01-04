@@ -36,7 +36,6 @@ DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** as a new pa
 <p align="center">
   <img src="docs/assets/multi-dialogue.png" width="800">
 </p>
----
 
 ## Installation
 
