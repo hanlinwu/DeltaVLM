@@ -2,7 +2,7 @@
 
 **Interactive Remote Sensing Image Change Analysis via Instruction-guided Difference Perception**
 
-[![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/)
+[![Paper](https://img.shields.io/badge/arXiv-Paper-red)](https://arxiv.org/abs/2507.22346)
 [![License](https://img.shields.io/badge/License-BSD--3--Clause-green)](LICENSE)
 
 ---
