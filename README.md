@@ -103,11 +103,10 @@ Generated Description:
 ==================================================
 A new building has appeared in the lower right area of the image.
 ==================================================
-
+```
 ---
 
 ## Directory Structure
-
 
 ```
 DeltaVLM/
