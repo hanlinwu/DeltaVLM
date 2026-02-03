@@ -123,8 +123,6 @@ torchrun --nproc_per_node=4 scripts/train.py --cfg_path configs/train_stage2.yam
 
 ## Evaluation
 
-### Batch Evaluation on Dataset
-
 ```bash
 python scripts/evaluate.py --cfg_path configs/evaluate.yaml
 ```
