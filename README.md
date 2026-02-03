@@ -31,14 +31,10 @@ DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** — a parad
 git clone https://github.com/hanlinwu/DeltaVLM.git
 cd DeltaVLM
 
-# Create conda environment
 conda create -n deltavlm python=3.10 -y
 conda activate deltavlm
 
-# Install PyTorch (CUDA 11.8)
 pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
-
-# Install dependencies
 pip install -r requirements.txt
 pip install -e .
 ```
@@ -48,34 +44,20 @@ pip install -e .
 ```bash
 mkdir -p pretrained
 
-# Vicuna-7B-v1.5 (requires HuggingFace login)
-huggingface-cli login
+# Vicuna-7B
 huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir pretrained/vicuna-7b-v1.5
 
-# BERT Base (for Q-Former tokenizer)
+# BERT (Q-Former tokenizer)
 huggingface-cli download bert-base-uncased --local-dir pretrained/bert-base-uncased
 
-# EVA-ViT-G (auto-downloads on first run, or manually)
-wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/eva_vit_g.pth -P pretrained/
-```
-
-### 3. Download Checkpoint
-
-Download the pretrained DeltaVLM checkpoint:
-
-```bash
-# Option 1: From HuggingFace (recommended)
+# DeltaVLM checkpoint
 huggingface-cli download hanlinwu/DeltaVLM --local-dir pretrained/deltavlm
-
-# Option 2: Direct link
-wget https://huggingface.co/hanlinwu/DeltaVLM/resolve/main/checkpoint_best.pth -P pretrained/
 ```
 
 ---
 
 ## Inference
 
-### Image Pair Inference
 
 Run inference on a pair of before/after images:
 
@@ -83,10 +65,9 @@ Run inference on a pair of before/after images:
 python scripts/predict.py \
     --image_A path/to/before.png \
     --image_B path/to/after.png \
-    --checkpoint pretrained/checkpoint_best.pth \
+    --checkpoint pretrained/deltavlm/checkpoint_best.pth \
     --llm_model pretrained/vicuna-7b-v1.5 \
-    --bert_model pretrained/bert-base-uncased \
-    --prompt "Please briefly describe the changes in these two images."
+    --bert_model pretrained/bert-base-uncased
 ```
 
 **Expected Output:**
@@ -100,48 +81,7 @@ Generating response...
 
 ==================================================
 Generated Description:
-==================================================
-A new building has appeared in the lower right area of the image.
-==================================================
-```
----
-
-## Directory Structure
-
-```
-DeltaVLM/
-├── configs/
-│   ├── evaluate.yaml          # Evaluation configuration
-│   └── train_stage2.yaml      # Training configuration
-├── data/
-│   └── download_changechat.py # Dataset download script
-├── deltavlm/
-│   ├── datasets/
-│   │   ├── change_caption.py  # Dataset classes
-│   │   └── processors.py      # Image/text processors
-│   ├── models/
-│   │   ├── blip2_vicuna.py    # Main DeltaVLM model
-│   │   ├── blip2_base.py      # Base BLIP-2 class
-│   │   ├── eva_vit.py         # Vision encoder
-│   │   └── qformer.py         # Q-Former
-│   └── utils/
-│       └── distributed.py     # Distributed utilities
-├── docs/
-│   ├── assets/                # Images for README
-│   ├── DATA.md               # Dataset documentation
-│   └── INSTALL.md            # Installation guide
-├── pretrained/                # Model weights (download)
-│   ├── vicuna-7b-v1.5/
-│   ├── bert-base-uncased/
-│   ├── eva_vit_g.pth
-│   └── checkpoint_best.pth
-├── scripts/
-│   ├── train.py              # Training script
-│   ├── evaluate.py           # Evaluation script
-│   └── predict.py            # Inference script
-├── requirements.txt
-├── setup.py
-└── README.md
+A new building has appeared in the lower right area.
 ```
 
 ---
