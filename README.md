@@ -31,9 +31,11 @@ DeltaVLM introduces **Remote Sensing Image Change Analysis (RSICA)** — a parad
 git clone https://github.com/hanlinwu/DeltaVLM.git
 cd DeltaVLM
 
+# Create conda environment
 conda create -n deltavlm python=3.10 -y
 conda activate deltavlm
 
+# Install dependencies
 pip install torch==2.0.1 torchvision==0.15.2 --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
 pip install -e .
@@ -44,7 +46,7 @@ pip install -e .
 ```bash
 mkdir -p pretrained
 
-# Vicuna-7B
+# Vicuna-7B (LLM backbone)
 huggingface-cli download lmsys/vicuna-7b-v1.5 --local-dir pretrained/vicuna-7b-v1.5
 
 # BERT (Q-Former tokenizer)
@@ -54,12 +56,7 @@ huggingface-cli download bert-base-uncased --local-dir pretrained/bert-base-unca
 huggingface-cli download hanlinwu/DeltaVLM --local-dir pretrained/deltavlm
 ```
 
----
-
-## Inference
-
-
-Run inference on a pair of before/after images:
+### 3. Run Inference
 
 ```bash
 python scripts/predict.py \
@@ -73,7 +70,7 @@ python scripts/predict.py \
 **Expected Output:**
 ```
 Using device: cuda
-Loading model from pretrained/checkpoint_best.pth...
+Loading model from pretrained/deltavlm/checkpoint_best.pth...
 Model loaded successfully!
 Preprocessing images...
 Prompt: Please briefly describe the changes in these two images.
@@ -82,6 +79,7 @@ Generating response...
 ==================================================
 Generated Description:
 A new building has appeared in the lower right area.
+==================================================
 ```
 
 ---
@@ -127,8 +125,6 @@ torchrun --nproc_per_node=4 scripts/train.py --cfg_path configs/train_stage2.yam
 python scripts/evaluate.py --cfg_path configs/evaluate.yaml
 ```
 
-### Metrics
-
 | Metric | Description |
 |--------|-------------|
 | BLEU-1/2/3/4 | N-gram precision |
@@ -162,8 +158,6 @@ python scripts/evaluate.py --cfg_path configs/evaluate.yaml
 
 ## Citation
 
-If you use DeltaVLM in your research, please cite:
-
 ```bibtex
 @article{deltavlm2024,
   title={DeltaVLM: Interactive Remote Sensing Image Change Analysis via Instruction-guided Difference Perception},
@@ -182,4 +176,3 @@ If you use DeltaVLM in your research, please cite:
 - [Vicuna](https://github.com/lm-sys/FastChat) language model
 - [LEVIR-CC](https://github.com/Chen-Yang-Liu/RSICC) dataset
 - [LEVIR-MCI](https://github.com/Chen-Yang-Liu/LEVIR-MCI) dataset
-
