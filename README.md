@@ -3,7 +3,6 @@
 **Interactive Remote Sensing Image Change Analysis via Instruction-guided Difference Perception**
 
 [![arXiv](https://img.shields.io/badge/arXiv-2507.22346-red)](https://arxiv.org/abs/2507.22346)
-[![License](https://img.shields.io/badge/License-BSD--3--Clause-green)](LICENSE)
 
 <p align="center">
   <img src="docs/assets/architecture.png" width="800">
@@ -74,9 +73,9 @@ wget https://huggingface.co/hanlinwu/DeltaVLM/resolve/main/checkpoint_best.pth -
 
 ---
 
-## Minimal Reproducible Example (MRE)
+## Inference
 
-### Single Image Pair Inference
+### Image Pair Inference
 
 Run inference on a pair of before/after images:
 
@@ -103,48 +102,6 @@ Generated Description:
 ==================================================
 A new building has appeared in the lower right area of the image.
 ==================================================
-```
-
-### Python API
-
-```python
-import torch
-from PIL import Image
-from deltavlm.models import Blip2VicunaInstruct
-from deltavlm.datasets.processors import BlipImageEvalProcessor
-
-# Load model
-model = Blip2VicunaInstruct(
-    vit_model="eva_clip_g",
-    img_size=224,
-    num_query_token=32,
-    llm_model="pretrained/vicuna-7b-v1.5",
-    qformer_text_input=True,
-)
-
-# Load checkpoint
-checkpoint = torch.load("pretrained/checkpoint_best.pth", map_location="cpu")
-model.load_state_dict(checkpoint["model"], strict=False)
-model = model.cuda().eval()
-
-# Process images
-processor = BlipImageEvalProcessor(image_size=224)
-img_A = Image.open("before.png").convert("RGB")
-img_B = Image.open("after.png").convert("RGB")
-tensor_A, tensor_B = processor(img_A, img_B)
-
-# Generate caption
-samples = {
-    "image_A": tensor_A.unsqueeze(0).cuda(),
-    "image_B": tensor_B.unsqueeze(0).cuda(),
-    "prompt": ["Please briefly describe the changes in these two images."],
-}
-
-with torch.no_grad():
-    caption = model.generate(samples, num_beams=5)[0]
-
-print(caption)
-```
 
 ---
 
@@ -330,6 +287,3 @@ If you use DeltaVLM in your research, please cite:
 - [LEVIR-CC](https://github.com/Chen-Yang-Liu/RSICC) dataset
 - [LEVIR-MCI](https://github.com/Chen-Yang-Liu/LEVIR-MCI) dataset
 
-## License
-
-[BSD 3-Clause License](LICENSE)
