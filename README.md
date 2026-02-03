@@ -59,7 +59,7 @@ huggingface-cli download bert-base-uncased --local-dir pretrained/bert-base-unca
 wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/eva_vit_g.pth -P pretrained/
 ```
 
-### 3. Download DeltaVLM Checkpoint
+### 3. Download Checkpoint
 
 Download the pretrained DeltaVLM checkpoint:
 
@@ -168,7 +168,7 @@ data/changechat/
     └── test.json
 ```
 
-### Run Training
+### Start Training
 
 ```bash
 # Single GPU
@@ -218,49 +218,6 @@ python scripts/evaluate.py --cfg_path configs/evaluate.yaml
 | Open-ended QA | 26,600 | 7,527 |
 | Multi-turn Dialogue | 6,815 | 1,929 |
 | **Total** | **87,935** | **17,172** |
-
----
-
-## Model Configuration
-
-| Component | Specification |
-|-----------|--------------|
-| Vision Encoder | EVA-ViT-G (1.0B params) |
-| Q-Former | 32 query tokens |
-| LLM | Vicuna-7B-v1.5 (frozen) |
-| Image Size | 224 × 224 |
-| CSRM | Gating + Filtering mechanism |
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-1. **CUDA Out of Memory**
-   ```bash
-   # Reduce batch size or use CPU
-   python scripts/predict.py --device cpu ...
-   ```
-
-2. **Missing Vicuna Weights**
-   ```
-   Error: Can't find model at pretrained/vicuna-7b-v1.5
-   ```
-   → Download Vicuna-7B-v1.5 from HuggingFace (see Step 2)
-
-3. **EVA-ViT Download Fails**
-   ```bash
-   # Manual download
-   wget https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/eva_vit_g.pth
-   mv eva_vit_g.pth pretrained/
-   ```
-
-4. **Transformers Version**
-   ```
-   BLIP-2 Vicuna requires transformers>=4.28
-   ```
-   → `pip install transformers==4.33.2`
 
 ---
 
