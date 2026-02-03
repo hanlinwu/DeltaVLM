@@ -32,7 +32,7 @@ def parse_args():
                        help="Path to before image")
     parser.add_argument("--image_B", type=str, required=True,
                        help="Path to after image")
-    parser.add_argument("--checkpoint", type=str, required=True,
+    parser.add_argument("--checkpoint", type=str, default="pretrained/checkpoint_best.pth",
                        help="Path to model checkpoint")
     parser.add_argument("--prompt", type=str,
                        default="Please briefly describe the changes in these two images.",
