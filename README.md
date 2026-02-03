@@ -85,6 +85,7 @@ python scripts/predict.py \
     --image_B path/to/after.png \
     --checkpoint pretrained/checkpoint_best.pth \
     --llm_model pretrained/vicuna-7b-v1.5 \
+    --bert_model pretrained/bert-base-uncased \
     --prompt "Please briefly describe the changes in these two images."
 ```
 

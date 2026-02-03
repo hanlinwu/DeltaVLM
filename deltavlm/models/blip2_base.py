@@ -24,6 +24,9 @@ from deltavlm.utils.distributed import download_cached_file, is_url
 
 from transformers import BertTokenizer
 
+# Support local model paths via environment variable
+BERT_MODEL_PATH = os.environ.get("BERT_MODEL_PATH", "bert-base-uncased")
+
 
 class LayerNorm(nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
@@ -52,8 +55,9 @@ class Blip2Base(BaseModel):
     def init_tokenizer(cls, truncation_side="right"):
         """Initialize BERT tokenizer."""
         tokenizer = BertTokenizer.from_pretrained(
-            "bert-base-uncased", 
-            truncation_side=truncation_side
+            BERT_MODEL_PATH, 
+            truncation_side=truncation_side,
+            local_files_only=os.path.isdir(BERT_MODEL_PATH)
         )
         tokenizer.add_special_tokens({"bos_token": "[DEC]"})
         return tokenizer
@@ -81,14 +85,15 @@ class Blip2Base(BaseModel):
             Qformer: Q-Former model
             query_tokens: Learnable query tokens
         """
-        encoder_config = BertConfig.from_pretrained("bert-base-uncased")
+        local_only = os.path.isdir(BERT_MODEL_PATH)
+        encoder_config = BertConfig.from_pretrained(BERT_MODEL_PATH, local_files_only=local_only)
         encoder_config.encoder_width = vision_width
         encoder_config.add_cross_attention = True
         encoder_config.cross_attention_freq = cross_attention_freq
         encoder_config.query_length = num_query_token
         
         Qformer = BertLMHeadModel.from_pretrained(
-            "bert-base-uncased", config=encoder_config
+            BERT_MODEL_PATH, config=encoder_config, local_files_only=local_only
         )
         
         query_tokens = nn.Parameter(

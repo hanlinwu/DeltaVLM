@@ -233,3 +233,13 @@ def tile(x, dim, n_tile):
         np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])
     )
     return torch.index_select(x, dim, order_index.to(x.device))
+
+
+def disabled_train(self, mode=True):
+    """
+    Disable training for a module.
+    
+    Overwrite model.train with this function to make sure train/eval mode
+    does not change anymore. Useful for freezing parts of the model.
+    """
+    return self

@@ -1,0 +1,217 @@
+From 80c5763dfb122aff54d9284a50acd2e1c9418c16 Mon Sep 17 00:00:00 2001
+From: pie1030 <1364639122@qq.com>
+Date: Tue, 3 Feb 2026 16:59:18 +0800
+Subject: [PATCH] Fix: Make inference pipeline reproducible
+
+Bug fixes:
+- Add missing 'disabled_train' function to base_model.py
+- Remove non-existent 'Blip2VicunaMask' from __init__.py
+- Remove non-existent 'change_mask' module from datasets/__init__.py
+- Add --bert_model argument to predict.py for offline/local BERT model support
+- Add local_files_only support for BERT tokenizer and Q-Former initialization
+
+Documentation:
+- Update README with --bert_model parameter in inference example
+
+These changes ensure the inference pipeline works in offline environments
+and fixes import errors that prevented the code from running.
+---
+ .gitignore                    | 11 +++++++++++
+ README.md                     |  1 +
+ deltavlm/__init__.py          |  4 +---
+ deltavlm/datasets/__init__.py | 26 +-------------------------
+ deltavlm/models/base_model.py | 10 ++++++++++
+ deltavlm/models/blip2_base.py | 13 +++++++++----
+ scripts/predict.py            |  5 +++++
+ 7 files changed, 38 insertions(+), 32 deletions(-)
+ create mode 100644 .gitignore
+
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+index 0000000..cf3f96e
+--- /dev/null
++++ b/.gitignore
+@@ -0,0 +1,11 @@
++__pycache__/
++*.pyc
++*.pyo
++*.egg-info/
++.eggs/
++dist/
++build/
++*.so
++.cache
++.pytest_cache
++*.log
+diff --git a/README.md b/README.md
+index acd00a0..bfed36c 100644
+--- a/README.md
++++ b/README.md
+@@ -85,6 +85,7 @@ python scripts/predict.py \
+     --image_B path/to/after.png \
+     --checkpoint pretrained/checkpoint_best.pth \
+     --llm_model pretrained/vicuna-7b-v1.5 \
++    --bert_model pretrained/bert-base-uncased \
+     --prompt "Please briefly describe the changes in these two images."
+ ```
+ 
+diff --git a/deltavlm/__init__.py b/deltavlm/__init__.py
+index c7ff9cf..de96499 100644
+--- a/deltavlm/__init__.py
++++ b/deltavlm/__init__.py
+@@ -3,16 +3,14 @@ DeltaVLM: Interactive Remote Sensing Image Change Analysis with Vision-Language
+ 
+ This package provides the core components for:
+ - Change captioning and interactive QA on bi-temporal remote sensing images
+-- Change mask prediction with AnyUp-style upsampling
+ """
+ 
+ __version__ = "1.0.0"
+ 
+-from .models import Blip2VicunaInstruct, Blip2VicunaMask
++from .models import Blip2VicunaInstruct
+ 
+ __all__ = [
+     "Blip2VicunaInstruct",
+-    "Blip2VicunaMask",
+ ]
+ 
+ 
+diff --git a/deltavlm/datasets/__init__.py b/deltavlm/datasets/__init__.py
+index d425520..bc0d143 100644
+--- a/deltavlm/datasets/__init__.py
++++ b/deltavlm/datasets/__init__.py
+@@ -1,44 +1,20 @@
+ """
+ DeltaVLM Dataset Module
+ 
+-Provides dataset loaders for:
+-- ChangeChat: Multi-turn change captioning and QA dataset
+-- LEVIR-MCI: Change mask dataset for segmentation training
++Provides dataset loaders for change captioning and QA.
+ """
+ 
+-from .change_caption import (
+-    ChangeCaptionDataset,
+-    ChangeCaptionEvalDataset,
+-    ChangeCaptionBuilder,
+-)
+-from .change_mask import (
+-    ChangeMaskDataset,
+-    BalancedChangeMaskDataset,
+-    build_mask_dataloaders,
+-)
+ from .processors import (
+     BlipImageEvalProcessor,
+     Blip2ImageTrainProcessor,
+     BlipCaptionProcessor,
+-    MaskAwarePairTransforms,
+-    MaskEvalTransforms,
+ )
+ 
+ __all__ = [
+-    # Caption datasets
+-    "ChangeCaptionDataset",
+-    "ChangeCaptionEvalDataset",
+-    "ChangeCaptionBuilder",
+-    # Mask datasets
+-    "ChangeMaskDataset",
+-    "BalancedChangeMaskDataset",
+-    "build_mask_dataloaders",
+     # Processors
+     "BlipImageEvalProcessor",
+     "Blip2ImageTrainProcessor",
+     "BlipCaptionProcessor",
+-    "MaskAwarePairTransforms",
+-    "MaskEvalTransforms",
+ ]
+ 
+ 
+diff --git a/deltavlm/models/base_model.py b/deltavlm/models/base_model.py
+index e53186c..742fe63 100644
+--- a/deltavlm/models/base_model.py
++++ b/deltavlm/models/base_model.py
+@@ -233,3 +233,13 @@ def tile(x, dim, n_tile):
+         np.concatenate([init_dim * np.arange(n_tile) + i for i in range(init_dim)])
+     )
+     return torch.index_select(x, dim, order_index.to(x.device))
++
++
++def disabled_train(self, mode=True):
++    """
++    Disable training for a module.
++    
++    Overwrite model.train with this function to make sure train/eval mode
++    does not change anymore. Useful for freezing parts of the model.
++    """
++    return self
+diff --git a/deltavlm/models/blip2_base.py b/deltavlm/models/blip2_base.py
+index 0396ea2..7e208f7 100644
+--- a/deltavlm/models/blip2_base.py
++++ b/deltavlm/models/blip2_base.py
+@@ -24,6 +24,9 @@ from deltavlm.utils.distributed import download_cached_file, is_url
+ 
+ from transformers import BertTokenizer
+ 
++# Support local model paths via environment variable
++BERT_MODEL_PATH = os.environ.get("BERT_MODEL_PATH", "bert-base-uncased")
++
+ 
+ class LayerNorm(nn.LayerNorm):
+     """Subclass torch's LayerNorm to handle fp16."""
+@@ -52,8 +55,9 @@ class Blip2Base(BaseModel):
+     def init_tokenizer(cls, truncation_side="right"):
+         """Initialize BERT tokenizer."""
+         tokenizer = BertTokenizer.from_pretrained(
+-            "bert-base-uncased", 
+-            truncation_side=truncation_side
++            BERT_MODEL_PATH, 
++            truncation_side=truncation_side,
++            local_files_only=os.path.isdir(BERT_MODEL_PATH)
+         )
+         tokenizer.add_special_tokens({"bos_token": "[DEC]"})
+         return tokenizer
+@@ -81,14 +85,15 @@ class Blip2Base(BaseModel):
+             Qformer: Q-Former model
+             query_tokens: Learnable query tokens
+         """
+-        encoder_config = BertConfig.from_pretrained("bert-base-uncased")
++        local_only = os.path.isdir(BERT_MODEL_PATH)
++        encoder_config = BertConfig.from_pretrained(BERT_MODEL_PATH, local_files_only=local_only)
+         encoder_config.encoder_width = vision_width
+         encoder_config.add_cross_attention = True
+         encoder_config.cross_attention_freq = cross_attention_freq
+         encoder_config.query_length = num_query_token
+         
+         Qformer = BertLMHeadModel.from_pretrained(
+-            "bert-base-uncased", config=encoder_config
++            BERT_MODEL_PATH, config=encoder_config, local_files_only=local_only
+         )
+         
+         query_tokens = nn.Parameter(
+diff --git a/scripts/predict.py b/scripts/predict.py
+index ce7c17e..f7210ee 100644
+--- a/scripts/predict.py
++++ b/scripts/predict.py
+@@ -39,6 +39,8 @@ def parse_args():
+                        help="Prompt for generation")
+     parser.add_argument("--llm_model", type=str, default="lmsys/vicuna-7b-v1.5",
+                        help="Path to LLM model")
++    parser.add_argument("--bert_model", type=str, default="bert-base-uncased",
++                       help="Path to BERT model for Q-Former tokenizer")
+     
+     # Generation parameters
+     parser.add_argument("--max_length", type=int, default=256,
+@@ -128,6 +130,9 @@ def generate(model, image_A, image_B, prompt, args, device='cuda'):
+ def main():
+     args = parse_args()
+     
++    # Set BERT model path for Q-Former
++    os.environ["BERT_MODEL_PATH"] = args.bert_model
++    
+     # Validate inputs
+     if not os.path.exists(args.image_A):
+         print(f"Error: Image A not found: {args.image_A}")
+-- 
+2.34.1
+

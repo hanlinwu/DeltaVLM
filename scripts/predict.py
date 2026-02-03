@@ -39,6 +39,8 @@ def parse_args():
                        help="Prompt for generation")
     parser.add_argument("--llm_model", type=str, default="lmsys/vicuna-7b-v1.5",
                        help="Path to LLM model")
+    parser.add_argument("--bert_model", type=str, default="bert-base-uncased",
+                       help="Path to BERT model for Q-Former tokenizer")
     
     # Generation parameters
     parser.add_argument("--max_length", type=int, default=256,
@@ -127,6 +129,9 @@ def generate(model, image_A, image_B, prompt, args, device='cuda'):
 
 def main():
     args = parse_args()
+    
+    # Set BERT model path for Q-Former
+    os.environ["BERT_MODEL_PATH"] = args.bert_model
     
     # Validate inputs
     if not os.path.exists(args.image_A):
