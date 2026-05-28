@@ -29,7 +29,7 @@ class Blip2OPT(Blip2Base):
     """
 
     PRETRAINED_MODEL_CONFIG_DICT = {
-        "pretrain_opt2.7b": "blip2_pretrain_opt2.7b.yaml",
+        "pretrain_opt2.7b": "configs/blip2_pretrain_opt2.7b.yaml",
         "pretrain_opt6.7b": "configs/models/blip2/blip2_pretrain_opt6.7b.yaml",
         "caption_coco_opt2.7b": "configs/models/blip2/blip2_caption_opt2.7b.yaml",
         "caption_coco_opt6.7b": "configs/models/blip2/blip2_caption_opt6.7b.yaml",

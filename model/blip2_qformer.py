@@ -64,7 +64,7 @@ class Blip2Qformer(Blip2Base):
     """
 
     PRETRAINED_MODEL_CONFIG_DICT = {
-        "pretrain": "blip2_pretrain.yaml",
+        "pretrain": "configs/blip2_pretrain.yaml",
         "pretrain_vitL": "configs/models/blip2/blip2_pretrain_vitL.yaml",
         "coco": "configs/models/blip2/blip2_coco.yaml",
     }

@@ -526,7 +526,7 @@ class COCOCapBuilder(BaseDatasetBuilder):
     eval_dataset_cls = COCOCapEvalDataset
 
     DATASET_CONFIG_DICT = {
-        "default": "defaults_cap.yaml",
+        "default": "configs/defaults_cap.yaml",
     }
 
 
@@ -562,6 +562,6 @@ class LLaVA150kDialInstructBuilder(BaseDatasetBuilder):
     eval_dataset_cls = LLaVA150kInstructDataset
 
     DATASET_CONFIG_DICT = {
-        "default": "defaults_cap.yaml",
+        "default": "configs/defaults_cap.yaml",
     }
 

@@ -69,8 +69,8 @@ class Blip2VicunaInstruct(Blip2Base):
     """
 
     PRETRAINED_MODEL_CONFIG_DICT = {
-        "vicuna7b": "blip2_instruct_vicuna7b.yaml",
-        "vicuna13b": "blip2_instruct_vicuna13b.yaml",
+        "vicuna7b": "configs/blip2_instruct_vicuna7b.yaml",
+        "vicuna13b": "configs/blip2_instruct_vicuna13b.yaml",
     }
 
     def __init__(
