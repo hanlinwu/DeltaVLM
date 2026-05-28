@@ -1,0 +1,23 @@
+ # Copyright (c) 2022, salesforce.com, inc.
+ # All rights reserved.
+ # SPDX-License-Identifier: BSD-3-Clause
+ # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
+datasets:
+  changechat_105k: # ChangeChat-105k bitemporal change captioning dataset
+    dataset_card: dataset_card/changechat_105k.md
+    data_type: images # [images|videos|features]
+
+    # Paths are relative to env.cache_root (configs/default.yaml -> "dataset").
+    # No `url:` is provided: annotations are expected to be present on disk;
+    # _download_ann() skips splits without a url.
+    build_info:
+      annotations:
+        train:
+          storage: annotations/changechat_105k_train.json
+        val:
+          storage: annotations/changechat_105k_val.json
+        test:
+          storage: annotations/changechat_105k_test.json
+      images:
+        storage: images/

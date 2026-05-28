@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+*.egg
+dist/
+build/
+
+# Caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors / IDEs
+.idea/
+.vscode/
+.ipynb_checkpoints/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+
+# Logs / runtime output
+*.out
+*.log
+
+# ML experiment tracking
+wandb/
+mlruns/
+lightning_logs/
+
+# Model weights / large binaries
+*.pth
+*.pt
+*.ckpt
+*.bin
+*.safetensors
+
+# Project-specific
+output/
+dataset/
+GPT-api/
+try.py
+CLAUDE.md
