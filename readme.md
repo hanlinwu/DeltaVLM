@@ -135,6 +135,43 @@ If you use the images, please cite LEVIR-CC:
 
 ---
 
+## Pretrained checkpoint
+
+The released DeltaVLM checkpoint is hosted on Hugging Face:
+
+- Model repo: [`hlwu/DeltaVLM`](https://huggingface.co/hlwu/DeltaVLM)
+- Main weight file: `checkpoint_best.pth`
+
+Download it into the same location expected by [configs/evaluate.yaml](configs/evaluate.yaml):
+
+```bash
+mkdir -p output/BLIP2/train_vicua/20250320054
+huggingface-cli download hlwu/DeltaVLM checkpoint_best.pth \
+  --local-dir output/BLIP2/train_vicua/20250320054
+```
+
+After download, the layout should be:
+
+```text
+output/
+└── BLIP2/
+    └── train_vicua/
+        └── 20250320054/
+            └── checkpoint_best.pth
+```
+
+The default evaluation config already points to this file through `model.pretrained:` in [configs/evaluate.yaml](configs/evaluate.yaml), so you do not need to edit the YAML if you keep the path above.
+
+### Base LLM weights
+
+This checkpoint does **not** contain the frozen Vicuna base model. The current code loads a Vicuna-7B-v1.5-compatible directory from `../vicuna-7b-v1.5`.
+
+If you already have a compatible local model, make sure this path resolves correctly. One working setup is:
+
+```bash
+ln -s /path/to/your/vicuna-or-llava-v1.5-7b ../vicuna-7b-v1.5
+```
+
 ## Environment
 
 ```bash
@@ -175,6 +212,28 @@ python evaluate.py --cfg_path configs/evaluate.yaml
 ```
 
 The checkpoint to evaluate is set via `model.pretrained:` in [configs/evaluate.yaml](configs/evaluate.yaml). Caption metrics (BLEU, METEOR, ROUGE-L, CIDEr) are vendored under [eval_func/](eval_func/) and scored against `dataset/annotations/changechat_105k_{val,test}.json`.
+
+## Quick smoke test
+
+For a fast end-to-end inference check on all six sub-tasks, run:
+
+```bash
+conda activate deltavlm
+python infer_subtasks.py --cfg_path configs/evaluate.yaml --n_samples 2
+```
+
+The script will:
+
+- load `checkpoint_best.pth` from `output/BLIP2/train_vicua/20250320054/`
+- read the six test annotation files under `dataset/annotations/`
+- run caption / binary / count / loc / open / dialog inference
+- save predictions to `output/subtask_smoke/`
+
+To run the full test splits instead of a 2-sample smoke test:
+
+```bash
+python infer_subtasks.py --cfg_path configs/evaluate.yaml --n_samples 99999
+```
 
 ---
 

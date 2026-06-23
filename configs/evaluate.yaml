@@ -3,23 +3,14 @@
  # SPDX-License-Identifier: BSD-3-Clause
  # For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 
-# Bleu_1: 0.832
-# Bleu_2: 0.691
-# Bleu_3: 0.556
-# Bleu_4: 0.438
-# METEOR: 0.317
-# ROUGE_L: 0.620
-# CIDEr: 1.461
-# SPICE: 0.252
-
 model:
-  arch: instruct_vicuna7b  # blip2   blip2_opt  instruct_vicuna7b
-  model_type: vicuna7b     # pretrain   pretrain_opt2.7b  vicuna7b
+  arch: instruct_vicuna7b
+  model_type: vicuna7b
   use_grad_checkpoint: False
-  pretrained: ./output/BLIP2/train_vicua/20250320054/checkpoint_best.pth #/root/autodl-tmp/Blip2CC/output/BLIP2/train_vicua/20250319222/checkpoint_best.pth #/root/autodl-tmp/Blip2CC/output/BLIP2/train_vicua/20250206211/checkpoint_0.pth #/root/autodl-tmp/Blip2CC/output/BLIP2/train_vicua/20250206211/checkpoint_0.pth
+  pretrained: ./output/BLIP2/train_vicua/20250320054/checkpoint_best.pth
 
 datasets:
-  changechat_105k: # ChangeChat-105k change captioning dataset
+  changechat_105k:
     vis_processor:
         eval:
           name: "blip_image_eval"
@@ -27,13 +18,9 @@ datasets:
     text_processor:
         eval:
           name: "blip_caption"
-#     build_info:
-#         images:
-#             storage: '/export/share/datasets/vision/coco/images/'
 
 run:
   task: captioning
-  # optimizer
   batch_size_train: 4
   batch_size_eval: 4
   num_workers: 0
@@ -42,7 +29,6 @@ run:
   min_len: 
   num_beams: 1
   prompt: 'Please briefly describe the changes in these two images.'
-  # Please briefly describe the changes in these two images.// prompt在dataset的text_input那里修改就好
 
   seed: 42
   output_dir: "output/BLIP2/Caption_coco_opt2.7b"
